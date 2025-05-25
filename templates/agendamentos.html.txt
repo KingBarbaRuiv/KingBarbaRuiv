@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agendamentos</title>
+</head>
+<body>
+    <h1>Agendamentos</h1>
+
+    <form method="POST">
+        Cliente:
+        <select name="cliente_id">
+            {% for cliente in clientes %}
+                <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+            {% endfor %}
+        </select><br>
+
+        Serviço:
+        <select name="servico_id">
+            {% for servico in servicos %}
+                <option value="{{ servico.id }}">{{ servico.nome }}</option>
+            {% endfor %}
+        </select><br>
+
+        Data: <input type="date" name="data" required><br>
+        Hora: <input type="time" name="hora" required><br>
+
+        <input type="submit" value="Agendar">
+    </form>
+
+    <h2>Lista de Agendamentos</h2>
+    <ul>
+        {% for agendamento in agendamentos %}
+            <li>{{ agendamento.data }} {{ agendamento.hora }} - {{ agendamento.cliente.nome }} - {{ agendamento.servico.nome }}</li>
+        {% endfor %}
+    </ul>
+
+    <a href="/">Voltar</a>
+</body>
+</html>

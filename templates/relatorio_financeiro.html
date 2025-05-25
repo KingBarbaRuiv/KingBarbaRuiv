@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório Financeiro</title>
+</head>
+<body>
+    <h1>Relatório Financeiro</h1>
+
+    <form method="POST">
+        <label>Data Início:</label>
+        <input type="date" name="data_inicio" required>
+        <label>Data Fim:</label>
+        <input type="date" name="data_fim" required>
+        <button type="submit">Gerar Relatório</button>
+    </form>
+
+    {% if registros %}
+        <h2>Período: {{ data_inicio }} até {{ data_fim }}</h2>
+        <table border="1">
+            <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+            </tr>
+            {% for r in registros %}
+            <tr>
+                <td>{{ r.data.strftime('%d/%m/%Y') }}</td>
+                <td>{{ r.descricao }}</td>
+                <td>{{ r.tipo }}</td>
+                <td>R$ {{ '%.2f' | format(r.valor) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <h3>Total de Entradas: R$ {{ '%.2f' | format(entradas) }}</h3>
+        <h3>Total de Saídas: R$ {{ '%.2f' | format(saidas) }}</h3>
+        <h3>Saldo: R$ {{ '%.2f' | format(saldo) }}</h3>
+    {% endif %}
+
+    <a href="/">Voltar</a>
+</body>
+</html>

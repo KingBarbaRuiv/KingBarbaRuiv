@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Editar Cliente</title>
+</head>
+<body>
+    <h1>Editar Cliente</h1>
+    <form method="POST">
+        <label>Nome:</label>
+        <input type="text" name="nome" value="{{ cliente.nome }}" required><br>
+        <label>Telefone:</label>
+        <input type="text" name="telefone" value="{{ cliente.telefone }}"><br>
+        <input type="submit" value="Salvar">
+    </form>
+    <a href="{{ url_for('clientes') }}">Voltar</a>
+</body>
+</html>

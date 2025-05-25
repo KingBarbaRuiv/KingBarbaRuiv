@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<h2>Clientes</h2>
+
+<form method="POST">
+  <div class="mb-3">
+    <label class="form-label">Nome</label>
+    <input type="text" name="nome" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Telefone</label>
+    <input type="text" name="telefone" class="form-control">
+  </div>
+  <button type="submit" class="btn btn-success">Adicionar Cliente</button>
+</form>
+
+<hr>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Telefone</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cliente in clientes %}
+    <tr>
+      <td>{{ cliente.nome }}</td>
+      <td>{{ cliente.telefone }}</td>
+      <td>
+        <a href="{{ url_for('editar_cliente', id=cliente.id) }}" class="btn btn-warning btn-sm">Editar</a>
+        <a href="{{ url_for('excluir_cliente', id=cliente.id) }}" class="btn btn-danger btn-sm"
+           onclick="return confirm('Tem certeza que deseja excluir?')">Excluir</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+    </style>
+</head>
+<body>
+
+    <h1>Gestão de Clientes</h1>
+
+    <form method="POST">
+        <label>Nome:</label><br>
+        <input type="text" name="nome" required><br>
+        <label>Telefone:</label><br>
+        <input type="text" name="telefone" required><br>
+        <input type="submit" value="Cadastrar Cliente">
+    </form>
+
+    <h2 style="text-align: center;">Lista de Clientes</h2>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Telefone</th>
+            <th>Ações</th>
+        </tr>
+        {% for cliente in clientes %}
+        <tr>
+            <td>{{ cliente.id }}</td>
+            <td>{{ cliente.nome }}</td>
+            <td>{{ cliente.telefone }}</td>
+            <td>
+                <a href="{{ url_for('editar_cliente', id=cliente.id) }}">Editar</a> |
+                <a href="{{ url_for('excluir_cliente', id=cliente.id) }}" onclick="return confirm('Deseja realmente excluir?');">Excluir</a>
+            </td>
+        </tr>
+        {% endfor %}
+    <table>
+    <tr>
+        <th>Nome</th>
+        <th>Telefone</th>
+        <th>Ações</th>
+    </tr>
+    {% for cliente in clientes %}
+    <tr>
+        <td>{{ cliente.nome }}</td>
+        <td>{{ cliente.telefone }}</td>
+        <td>
+            <a href="{{ url_for('editar_cliente', id=cliente.id) }}">Editar</a> |
+            <a href="{{ url_for('excluir_cliente', id=cliente.id) }}" onclick="return confirm('Tem certeza que deseja excluir?')">Excluir</a>
+
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+
+</body>
+</html>
