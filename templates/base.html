@@ -1,35 +1,59 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>The Barber Ickaro</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container">
-    <a class="navbar-brand" href="/">The Barber Ickaro</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav">
-        <li class="nav-item"><a class="nav-link" href="/">Início</a></li>
-        <li class="nav-item"><a class="nav-link" href="/clientes">Clientes</a></li>
-        <li class="nav-item"><a class="nav-link" href="/servicos">Serviços</a></li>
-        <li class="nav-item"><a class="nav-link" href="/agendamentos">Agendamentos</a></li>
-        <li class="nav-item"><a class="nav-link" href="/financeiro">Financeiro</a></li>
-        <li class="nav-item"><a class="nav-link" href="/relatorios">Relatórios</a></li>
-      </ul>
-    </div>
-  </div>
-</nav>
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///barber.db'
+app.config['SECRET_KEY'] = 'chave_secreta'
+db = SQLAlchemy(app)
 
-<div class="container mt-4">
-    {% block conteudo %}{% endblock %}
-</div>
+# Model Cliente
+class Cliente(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    telefone = db.Column(db.String(20))
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+
+# Rotas Clientes
+@app.route('/clientes', methods=['GET', 'POST'])
+def clientes():
+    if request.method == 'POST':
+        nome = request.form['nome']
+        telefone = request.form['telefone']
+        novo_cliente = Cliente(nome=nome, telefone=telefone)
+        db.session.add(novo_cliente)
+        db.session.commit()
+        flash('Cliente adicionado com sucesso!')
+        return redirect(url_for('clientes'))
+
+    clientes = Cliente.query.all()
+    return render_template('clientes.html', clientes=clientes)
+
+
+@app.route('/clientes/editar/<int:id>', methods=['GET', 'POST'])
+def editar_cliente(id):
+    cliente = Cliente.query.get_or_404(id)
+
+    if request.method == 'POST':
+        cliente.nome = request.form['nome']
+        cliente.telefone = request.form['telefone']
+        db.session.commit()
+        flash('Cliente atualizado!')
+        return redirect(url_for('clientes'))
+
+    return render_template('editar_cliente.html', cliente=cliente)
+
+
+@app.route('/clientes/excluir/<int:id>')
+def excluir_cliente(id):
+    cliente = Cliente.query.get_or_404(id)
+    db.session.delete(cliente)
+    db.session.commit()
+    flash('Cliente excluído!')
+    return redirect(url_for('clientes'))
+
+
+# Rodando
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)

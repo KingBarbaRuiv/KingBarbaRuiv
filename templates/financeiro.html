@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Financeiro - The Barber Ickaro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -30,21 +31,22 @@
                 <input type="date" class="form-control" name="data" required>
             </div>
             <div class="col-md-2">
-                <button class="btn btn-warning w-100" type="submit">Lançar</button>
+                <button class="btn btn-success w-100" type="submit">Lançar</button>
             </div>
         </form>
 
         <hr>
 
         <h4 class="mt-4">Lançamentos</h4>
-        <table class="table table-striped">
-            <thead>
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
                 <tr>
                     <th>ID</th>
                     <th>Descrição</th>
                     <th>Tipo</th>
                     <th>Valor (R$)</th>
                     <th>Data</th>
+                    <th>Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -53,8 +55,12 @@
                     <td>{{ f.id }}</td>
                     <td>{{ f.descricao }}</td>
                     <td>{{ f.tipo }}</td>
-                    <td>{{ f.valor }}</td>
+                    <td>R$ {{ "%.2f"|format(f.valor) }}</td>
                     <td>{{ f.data.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        <a href="{{ url_for('editar_financeiro', id=f.id) }}" class="btn btn-warning btn-sm">Editar</a>
+                        <a href="{{ url_for('excluir_financeiro', id=f.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja excluir?')">Excluir</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

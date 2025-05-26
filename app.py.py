@@ -72,9 +72,9 @@ def login_required(func):
 
 # ----------------- ROTAS PRINCIPAIS -----------------
 @app.route('/')
-@login_required
 def index():
     return render_template('index.html')
+
 
 # ----------------- USUÁRIOS -----------------
 @app.route('/usuarios', methods=['GET', 'POST'])
@@ -124,12 +124,15 @@ def clientes():
     if request.method == 'POST':
         nome = request.form['nome']
         telefone = request.form['telefone']
-        novo = Cliente(nome=nome, telefone=telefone)
-        db.session.add(novo)
+        novo_cliente = Cliente(nome=nome, telefone=telefone)
+        db.session.add(novo_cliente)
         db.session.commit()
         return redirect(url_for('clientes'))
+
     clientes = Cliente.query.all()
     return render_template('clientes.html', clientes=clientes)
+
+
 
 @app.route('/clientes/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -149,6 +152,7 @@ def excluir_cliente(id):
     db.session.delete(cliente)
     db.session.commit()
     return redirect(url_for('clientes'))
+
 
 # ----------------- SERVIÇOS -----------------
 @app.route('/servicos', methods=['GET', 'POST'])
@@ -218,13 +222,36 @@ def agendamentos():
     servicos = Servico.query.all()
     return render_template('agendamentos.html', agendamentos=agendamentos, clientes=clientes, servicos=servicos)
 
+# ----------------- EDITAR AGENDAMENTO -----------------
+@app.route('/agendamentos/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_agendamento(id):
+    agendamento = Agendamento.query.get_or_404(id)
+    clientes = Cliente.query.all()
+    servicos = Servico.query.all()
+
+    if request.method == 'POST':
+        agendamento.cliente_id = request.form['cliente_id']
+        agendamento.servico_id = request.form['servico_id']
+        agendamento.data = datetime.strptime(request.form['data'], '%Y-%m-%d')
+        agendamento.hora = datetime.strptime(request.form['hora'], '%H:%M').time()
+
+        db.session.commit()
+        flash('Agendamento atualizado com sucesso!')
+        return redirect(url_for('agendamentos'))
+
+    return render_template('editar_agendamento.html', agendamento=agendamento, clientes=clientes, servicos=servicos)
+
+# ----------------- EXCLUIR AGENDAMENTO -----------------
 @app.route('/agendamentos/excluir/<int:id>')
 @login_required
 def excluir_agendamento(id):
     agendamento = Agendamento.query.get_or_404(id)
     db.session.delete(agendamento)
     db.session.commit()
+    flash('Agendamento excluído com sucesso!')
     return redirect(url_for('agendamentos'))
+
 
 # ----------------- FINANCEIRO -----------------
 @app.route('/financeiro', methods=['GET', 'POST'])
@@ -247,12 +274,29 @@ def financeiro():
     financeiro = Financeiro.query.all()
     return render_template('financeiro.html', financeiro=financeiro)
 
+# Editar lançamento financeiro
+@app.route('/financeiro/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_financeiro(id):
+    lancamento = Financeiro.query.get_or_404(id)
+    if request.method == 'POST':
+        lancamento.descricao = request.form['descricao']
+        lancamento.tipo = request.form['tipo']
+        lancamento.valor = float(request.form['valor'])
+        lancamento.data = datetime.strptime(request.form['data'], '%Y-%m-%d')
+        db.session.commit()
+        flash('Lançamento atualizado com sucesso!')
+        return redirect(url_for('financeiro'))
+    return render_template('editar_financeiro.html', lancamento=lancamento)
+
+# Excluir lançamento financeiro
 @app.route('/financeiro/excluir/<int:id>')
 @login_required
 def excluir_financeiro(id):
     lancamento = Financeiro.query.get_or_404(id)
     db.session.delete(lancamento)
     db.session.commit()
+    flash('Lançamento excluído com sucesso!')
     return redirect(url_for('financeiro'))
 
 # ----------------- RELATÓRIOS -----------------
