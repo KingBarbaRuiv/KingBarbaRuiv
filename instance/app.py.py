@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
-from datetime import datetime, timedelta
-from functools import wraps
+from datetime import datetime
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///barber.db'
@@ -14,6 +13,7 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False, unique=True)
     senha = db.Column(db.String(100), nullable=False)
+
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -42,22 +42,6 @@ class Financeiro(db.Model):
     valor = db.Column(db.Float)
     data = db.Column(db.Date, default=datetime.utcnow)
 
-class Estoque(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False)
-    quantidade = db.Column(db.Integer, default=0)
-    preco_unitario = db.Column(db.Float, default=0.0)  # campo usado pelo financeiro
-    data_entrada = db.Column(db.Date, default=datetime.utcnow)
-
-class MovimentacaoEstoque(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    item_id = db.Column(db.Integer, db.ForeignKey('estoque.id'))
-    tipo = db.Column(db.String(10))  # 'entrada' ou 'saida'
-    quantidade = db.Column(db.Integer)
-    data = db.Column(db.Date, default=datetime.utcnow)
-
-    item = db.relationship('Estoque')
-
 # ----------------- AUTENTICAÇÃO -----------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -77,7 +61,9 @@ def logout():
     session.pop('usuario', None)
     return redirect(url_for('login'))
 
+# Decorador para proteger rotas
 def login_required(func):
+    from functools import wraps
     @wraps(func)
     def decorated_view(*args, **kwargs):
         if 'usuario' not in session:
@@ -85,10 +71,11 @@ def login_required(func):
         return func(*args, **kwargs)
     return decorated_view
 
-# ----------------- PÁGINA INICIAL -----------------
+# ----------------- ROTAS PRINCIPAIS -----------------
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 # ----------------- USUÁRIOS -----------------
 @app.route('/usuarios', methods=['GET', 'POST'])
@@ -97,6 +84,7 @@ def usuarios():
     if request.method == 'POST':
         username = request.form['username']
         senha = request.form['senha']
+
         if Usuario.query.filter_by(username=username).first():
             flash('Usuário já existe!')
         else:
@@ -105,6 +93,7 @@ def usuarios():
             db.session.commit()
             flash('Usuário cadastrado com sucesso!')
         return redirect(url_for('usuarios'))
+
     usuarios = Usuario.query.all()
     return render_template('usuarios.html', usuarios=usuarios)
 
@@ -140,8 +129,11 @@ def clientes():
         db.session.add(novo_cliente)
         db.session.commit()
         return redirect(url_for('clientes'))
+
     clientes = Cliente.query.all()
     return render_template('clientes.html', clientes=clientes)
+
+
 
 @app.route('/clientes/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -161,6 +153,7 @@ def excluir_cliente(id):
     db.session.delete(cliente)
     db.session.commit()
     return redirect(url_for('clientes'))
+
 
 # ----------------- SERVIÇOS -----------------
 @app.route('/servicos', methods=['GET', 'POST'])
@@ -194,6 +187,7 @@ def excluir_servico(id):
     db.session.delete(servico)
     db.session.commit()
     return redirect(url_for('servicos'))
+    
 
 # ----------------- AGENDAMENTOS -----------------
 @app.route('/agendamentos', methods=['GET', 'POST'])
@@ -204,22 +198,33 @@ def agendamentos():
         servico_id = request.form['servico_id']
         data = request.form['data']
         hora = request.form['hora']
+
         hora_obj = datetime.strptime(hora, '%H:%M').time()
         data_obj = datetime.strptime(data, '%Y-%m-%d')
+
         if hora_obj < datetime.strptime('09:00', '%H:%M').time() or hora_obj > datetime.strptime('19:00', '%H:%M').time():
             return "<h3 style='color:red;'>Erro: Fora do horário de funcionamento (09:00 - 19:00)</h3><a href='/agendamentos'>Voltar</a>"
+
         conflito = Agendamento.query.filter_by(data=data_obj, hora=hora_obj).first()
         if conflito:
             return "<h3 style='color:red;'>Erro: Já existe um agendamento para esse horário!</h3><a href='/agendamentos'>Voltar</a>"
-        agendamento = Agendamento(cliente_id=cliente_id, servico_id=servico_id, data=data_obj, hora=hora_obj)
+
+        agendamento = Agendamento(
+            cliente_id=cliente_id,
+            servico_id=servico_id,
+            data=data_obj,
+            hora=hora_obj
+        )
         db.session.add(agendamento)
         db.session.commit()
         return redirect(url_for('agendamentos'))
+
     agendamentos = Agendamento.query.all()
     clientes = Cliente.query.all()
     servicos = Servico.query.all()
     return render_template('agendamentos.html', agendamentos=agendamentos, clientes=clientes, servicos=servicos)
 
+# ----------------- EDITAR AGENDAMENTO -----------------
 @app.route('/agendamentos/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_agendamento(id):
@@ -232,12 +237,14 @@ def editar_agendamento(id):
         agendamento.servico_id = request.form['servico_id']
         agendamento.data = datetime.strptime(request.form['data'], '%Y-%m-%d')
         agendamento.hora = datetime.strptime(request.form['hora'], '%H:%M').time()
+
         db.session.commit()
         flash('Agendamento atualizado com sucesso!')
         return redirect(url_for('agendamentos'))
 
     return render_template('editar_agendamento.html', agendamento=agendamento, clientes=clientes, servicos=servicos)
 
+# ----------------- EXCLUIR AGENDAMENTO -----------------
 @app.route('/agendamentos/excluir/<int:id>')
 @login_required
 def excluir_agendamento(id):
@@ -246,6 +253,7 @@ def excluir_agendamento(id):
     db.session.commit()
     flash('Agendamento excluído com sucesso!')
     return redirect(url_for('agendamentos'))
+
 
 # ----------------- FINANCEIRO -----------------
 @app.route('/financeiro', methods=['GET', 'POST'])
@@ -256,19 +264,27 @@ def financeiro():
         tipo = request.form['tipo']
         valor = float(request.form['valor'])
         data = request.form['data']
-        lancamento = Financeiro(descricao=descricao, tipo=tipo, valor=valor, data=datetime.strptime(data, '%Y-%m-%d'))
+        lancamento = Financeiro(
+            descricao=descricao,
+            tipo=tipo,
+            valor=valor,
+            data=datetime.strptime(data, '%Y-%m-%d')
+        )
         db.session.add(lancamento)
         db.session.commit()
         flash('Lançamento adicionado com sucesso!')
         return redirect(url_for('financeiro'))
+
     financeiro = Financeiro.query.order_by(Financeiro.data.desc()).all()
     return render_template('financeiro.html', financeiro=financeiro)
 
-# Rota para editar lançamento financeiro (adicionada para evitar BuildError)
+
+# ----------------- EDITAR FINANCEIRO -----------------
 @app.route('/financeiro/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_financeiro(id):
     lancamento = Financeiro.query.get_or_404(id)
+
     if request.method == 'POST':
         lancamento.descricao = request.form['descricao']
         lancamento.tipo = request.form['tipo']
@@ -277,9 +293,11 @@ def editar_financeiro(id):
         db.session.commit()
         flash('Lançamento atualizado com sucesso!')
         return redirect(url_for('financeiro'))
+
     return render_template('editar_financeiro.html', lancamento=lancamento)
 
-# Rota para excluir lançamento financeiro (adicionada para evitar BuildError)
+
+# ----------------- EXCLUIR FINANCEIRO -----------------
 @app.route('/financeiro/excluir/<int:id>')
 @login_required
 def excluir_financeiro(id):
@@ -289,129 +307,92 @@ def excluir_financeiro(id):
     flash('Lançamento excluído com sucesso!')
     return redirect(url_for('financeiro'))
 
-# ----------------- ESTOQUE -----------------
-@app.route('/estoque', methods=['GET', 'POST'])
+
+# ----------------- IMPORTAR FINANCEIRO VIA EXCEL -----------------
+@app.route('/financeiro/importar', methods=['GET', 'POST'])
 @login_required
-def estoque():
+def importar_financeiro():
     if request.method == 'POST':
-        nome = request.form['nome']
-        quantidade = int(request.form['quantidade'])
-        # preco_unitario pode vir do formulario; se não vier, usa 0.0
-        preco_unitario = float(request.form.get('preco_unitario', 0) or 0)
+        arquivo = request.files['arquivo']
+        if arquivo.filename.endswith(('.xlsx', '.xls')):
+            filename = secure_filename(arquivo.filename)
+            caminho = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            arquivo.save(caminho)
 
-        novo_item = Estoque(nome=nome, quantidade=quantidade, preco_unitario=preco_unitario)
-        db.session.add(novo_item)
-        db.session.commit()
-
-        # registra entrada
-        mov = MovimentacaoEstoque(item_id=novo_item.id, tipo='entrada', quantidade=quantidade)
-        db.session.add(mov)
-        db.session.commit()
-
-        flash('Item adicionado ao estoque!')
-        return redirect(url_for('estoque'))
-
-    # filtro por dia (query string ?dia=YYYY-MM-DD)
-    dia_str = request.args.get('dia')
-    hoje = datetime.today().date()
-    ontem = hoje - timedelta(days=1)
-    hoje_str = hoje.strftime('%Y-%m-%d')
-    ontem_str = ontem.strftime('%Y-%m-%d')
-
-    if dia_str:
-        try:
-            dia = datetime.strptime(dia_str, '%Y-%m-%d').date()
-            movimentos = MovimentacaoEstoque.query.filter(MovimentacaoEstoque.data == dia).all()
-        except:
-            movimentos = MovimentacaoEstoque.query.all()
-        # rota label amigável
-        if dia_str == hoje_str:
-            dia_label = 'Hoje'
-        elif dia_str == ontem_str:
-            dia_label = 'Ontem'
-        else:
             try:
-                dia_dt = datetime.strptime(dia_str, '%Y-%m-%d').date()
-                dia_label = dia_dt.strftime('%d/%m/%Y')
-            except:
-                dia_label = dia_str
-    else:
-        movimentos = MovimentacaoEstoque.query.all()
-        dia_label = 'Todos'
+                # Ler a página 2 (índice 1)
+                df = pd.read_excel(caminho, sheet_name=1)
 
-    return render_template('estoque.html',
-                           movimentos=movimentos,
-                           itens=Estoque.query.all(),
-                           hoje_str=hoje_str,
-                           ontem_str=ontem_str,
-                           hoje=hoje,
-                           ontem=ontem,
-                           dia_label=dia_label)
+                for _, linha in df.iterrows():
+                    try:
+                        descricao = str(linha['descricao'])
+                        tipo = str(linha['tipo']).lower()
+                        valor = float(linha['valor'])
+                        data = pd.to_datetime(linha['data']).date()
 
-@app.route('/estoque/remover/<int:id>', methods=['POST'])
+                        if tipo not in ['entrada', 'saida']:
+                            continue  # Ignorar linhas inválidas
+
+                        lancamento = Financeiro(
+                            descricao=descricao,
+                            tipo=tipo,
+                            valor=valor,
+                            data=data
+                        )
+                        db.session.add(lancamento)
+
+                    except Exception as e:
+                        print(f"Erro na linha {linha}: {e}")
+                        continue
+
+                db.session.commit()
+                flash('Importação realizada com sucesso!')
+                return redirect(url_for('financeiro'))
+
+            except Exception as e:
+                flash(f'Erro na leitura do arquivo: {e}')
+                return redirect(url_for('importar_financeiro'))
+
+        else:
+            flash('Formato de arquivo inválido. Envie um arquivo Excel (.xlsx ou .xls)')
+            return redirect(url_for('importar_financeiro'))
+
+    return render_template('importar_financeiro.html')
+from io import BytesIO
+import pandas as pd
+from flask import send_file
+
+@app.route('/financeiro/exportar')
 @login_required
-def remover_estoque(id):
-    item = Estoque.query.get_or_404(id)
-    quantidade_remover = int(request.form['quantidade'])
-    if quantidade_remover > item.quantidade:
-        flash('Quantidade inválida!')
-    else:
-        item.quantidade -= quantidade_remover
-        db.session.commit()
+def exportar_financeiro():
+    registros = Financeiro.query.order_by(Financeiro.data).all()
 
-        mov = MovimentacaoEstoque(item_id=item.id, tipo='saida', quantidade=quantidade_remover)
-        db.session.add(mov)
+    if not registros:
+        flash("Não há lançamentos financeiros para exportar.", "warning")
+        return redirect(url_for('financeiro'))
 
-        # registrar no financeiro automaticamente
-        valor_total = quantidade_remover * (item.preco_unitario or 0)
-        lancamento = Financeiro(
-            descricao=f"Saída de {quantidade_remover}x {item.nome}",
-            tipo="saida",
-            valor=valor_total,
-            data=datetime.utcnow()
-        )
-        db.session.add(lancamento)
+    dados = [{
+        'Descrição': r.descricao,
+        'Tipo': r.tipo,
+        'Valor': r.valor,
+        'Data': r.data.strftime('%d/%m/%Y')
+    } for r in registros]
 
-        db.session.commit()
-        flash('Quantidade removida do estoque e saída registrada no financeiro!')
-    return redirect(url_for('estoque'))
+    df = pd.DataFrame(dados)
 
-@app.route('/estoque/editar/<int:id>', methods=['GET', 'POST'])
-@login_required
-def editar_estoque(id):
-    item = Estoque.query.get_or_404(id)
-    if request.method == 'POST':
-        item.nome = request.form['nome']
-        item.quantidade = int(request.form['quantidade'])
-        item.preco_unitario = float(request.form.get('preco_unitario', 0) or 0)
-        db.session.commit()
-        flash('Item atualizado!')
-        return redirect(url_for('estoque'))
-    return render_template('editar_estoque.html', item=item)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Financeiro')
 
-@app.route('/estoque/excluir/<int:id>')
-@login_required
-def excluir_estoque(id):
-    item = Estoque.query.get_or_404(id)
-    db.session.delete(item)
-    db.session.commit()
-    flash('Item excluído!')
-    return redirect(url_for('estoque'))
-    
-    # ----------------- LIMPAR MOVIMENTAÇÕES ESTOQUE -----------------
-@app.route('/estoque/limpar')
-@login_required
-def limpar_estoque():
-    try:
-        # Apaga todas as movimentações e lançamentos financeiros ligados ao estoque
-        db.session.query(MovimentacaoEstoque).delete()
-        db.session.query(Financeiro).filter(Financeiro.tipo == 'saida').delete()
-        db.session.commit()
-        flash('Todas as movimentações e saídas financeiras do estoque foram apagadas!')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao limpar movimentações: {e}')
-    return redirect(url_for('estoque'))
+    output.seek(0)
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name='relatorio_financeiro.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
 
 
 # ----------------- RELATÓRIOS -----------------
@@ -423,29 +404,43 @@ def relatorios():
     saldo = entradas - saidas
     return render_template('relatorios.html', entradas=entradas, saidas=saidas, saldo=saldo)
 
+@app.route('/relatorios/financeiro', methods=['GET', 'POST'])
+@login_required
+def relatorio_financeiro():
+    registros = []
+    entradas = 0
+    saidas = 0
+    saldo = 0
+
+    if request.method == 'POST':
+        data_inicio = datetime.strptime(request.form['data_inicio'], '%Y-%m-%d')
+        data_fim = datetime.strptime(request.form['data_fim'], '%Y-%m-%d')
+
+        registros = Financeiro.query.filter(
+            Financeiro.data >= data_inicio,
+            Financeiro.data <= data_fim
+        ).all()
+
+        entradas = sum(r.valor for r in registros if r.tipo == 'entrada')
+        saidas = sum(r.valor for r in registros if r.tipo == 'saida')
+        saldo = entradas - saidas
+
+    return render_template('relatorio_financeiro.html',
+                           registros=registros,
+                           entradas=entradas,
+                           saidas=saidas,
+                           saldo=saldo)
+
+
 # ----------------- MAIN -----------------
 if __name__ == '__main__':
     with app.app_context():
-        # cria tabelas que faltam
         db.create_all()
 
-        # --- Se a coluna preco_unitario não existir (DB antigo), adiciona-a sem perder dados ---
-        try:
-            res = db.session.execute(text("PRAGMA table_info(estoque)")).fetchall()
-            cols = [r[1] for r in res]  # segundo campo é o nome da coluna
-            if 'preco_unitario' not in cols:
-                # adiciona coluna com default 0
-                db.session.execute(text("ALTER TABLE estoque ADD COLUMN preco_unitario FLOAT DEFAULT 0"))
-                db.session.commit()
-                print("Coluna 'preco_unitario' adicionada à tabela 'estoque'.")
-        except Exception as e:
-            print("Erro ao verificar/alterar tabela 'estoque':", e)
-
-        # garante usuário admin
         if not Usuario.query.filter_by(username='admin').first():
             admin = Usuario(username='admin', senha='1234')
             db.session.add(admin)
             db.session.commit()
             print('Usuário admin criado: admin / 1234')
 
-    app.run(debug=True)
+        app.run(debug=True)

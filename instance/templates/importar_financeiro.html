@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Importar Financeiro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h2>Importar Dados Financeiros</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <label>Selecione o arquivo Excel:</label><br><br>
+        <input type="file" name="arquivo" required><br><br>
+        <button type="submit">Importar</button>
+    </form>
+    <br>
+    <a href="{{ url_for('financeiro') }}">Voltar</a>
+</body>
+</html>

@@ -1,0 +1,59 @@
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///barber.db'
+app.config['SECRET_KEY'] = 'chave_secreta'
+db = SQLAlchemy(app)
+
+# Model Cliente
+class Cliente(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    telefone = db.Column(db.String(20))
+
+
+# Rotas Clientes
+@app.route('/clientes', methods=['GET', 'POST'])
+def clientes():
+    if request.method == 'POST':
+        nome = request.form['nome']
+        telefone = request.form['telefone']
+        novo_cliente = Cliente(nome=nome, telefone=telefone)
+        db.session.add(novo_cliente)
+        db.session.commit()
+        flash('Cliente adicionado com sucesso!')
+        return redirect(url_for('clientes'))
+
+    clientes = Cliente.query.all()
+    return render_template('clientes.html', clientes=clientes)
+
+
+@app.route('/clientes/editar/<int:id>', methods=['GET', 'POST'])
+def editar_cliente(id):
+    cliente = Cliente.query.get_or_404(id)
+
+    if request.method == 'POST':
+        cliente.nome = request.form['nome']
+        cliente.telefone = request.form['telefone']
+        db.session.commit()
+        flash('Cliente atualizado!')
+        return redirect(url_for('clientes'))
+
+    return render_template('editar_cliente.html', cliente=cliente)
+
+
+@app.route('/clientes/excluir/<int:id>')
+def excluir_cliente(id):
+    cliente = Cliente.query.get_or_404(id)
+    db.session.delete(cliente)
+    db.session.commit()
+    flash('Cliente excluído!')
+    return redirect(url_for('clientes'))
+
+
+# Rodando
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciar Usuários</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Gerenciar Usuários</h1>
+
+    <!-- Formulário para adicionar novo usuário -->
+    <h2>Adicionar Novo Usuário</h2>
+    <form method="POST">
+        <label>Usuário:</label><br>
+        <input type="text" name="username" required><br><br>
+
+        <label>Senha:</label><br>
+        <input type="text" name="senha" required><br><br>
+
+        <button type="submit">Adicionar</button>
+    </form>
+
+    <hr>
+
+    <!-- Lista de usuários -->
+    <h2>Lista de Usuários</h2>
+    <table border="1" cellpadding="5" cellspacing="0">
+        <tr>
+            <th>ID</th>
+            <th>Usuário</th>
+            <th>Ações</th>
+        </tr>
+        {% for usuario in usuarios %}
+        <tr>
+            <td>{{ usuario.id }}</td>
+            <td>{{ usuario.username }}</td>
+            <td>
+                <a href="{{ url_for('editar_usuario', id=usuario.id) }}">Editar</a> |
+                <a href="{{ url_for('excluir_usuario', id=usuario.id) }}" onclick="return confirm('Tem certeza que deseja excluir?');">Excluir</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br>
+    <a href="{{ url_for('index') }}">Voltar ao Início</a>
+</body>
+</html>
